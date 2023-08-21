@@ -40,12 +40,16 @@ class Suggester:
         x = torch.tensor([self.emb.word_to_idx(w) for w in tokens], dtype=torch.int32, device=DEVICE)
         l_prompt = len(tokens)
         n_gen = self.N_SUGGESTIONS
-        beam = n_gen
+        beam = 2 * n_gen
         depth = 0
 
         # Queue with tokens being added one by one
         queue = [(1, x)]
         suggestions = []
+
+        # Sorting function
+        sort_by_tensor = lambda prob_tok: -prob_tok[0].item()
+        sort_by = lambda prob_tok: -prob_tok[0]
 
         # Generate n_gen words with beam search decoding
         while queue:
@@ -60,7 +64,7 @@ class Suggester:
             curr_prob, curr_x = queue.pop()
             generated, probs = self.model.generate(curr_x.unsqueeze(0), beam)
 
-            for p, g in sorted(zip(probs, generated), key=lambda pg: pg[0].item(), reverse=True):
+            for p, g in sorted(zip(probs, generated), key=sort_by_tensor):
                 # We allow for the very first token to be a space (new word) or not (continuation of word)
                 # if instead a new space is encountered this means the end of a suggestion (end word)
                 if curr_prob == 1 or g not in self.emb.end_word_tokens:
@@ -74,12 +78,9 @@ class Suggester:
                         torch.cat((curr_x, g.unsqueeze(0)))[l_prompt:]
                     ))
 
-                # print(f'sugg (l={l_prompt}):', [(self.make_word(a), p) for p, a in suggestions])
-                # print('queue:', [(self.make_word(a), p) for p, a in queue])
-
             queue = queue[:beam]
 
-        return [(self.make_word(a), p) for p, a in suggestions[:n_gen]]
+        return [(self.make_word(a), p) for p, a in sorted(suggestions, key=sort_by)[:n_gen]]
 
     def suggest(self, words):
         """Takes a vector of words, pads or truncates to CONTEXT_SIZE and returns the suggested words"""
