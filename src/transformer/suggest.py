@@ -84,7 +84,7 @@ class Suggester:
     def suggest(self, words):
         """Takes a vector of words, pads or truncates to CONTEXT_SIZE and returns the suggested words"""
         if len(words) < self.CONTEXT_SIZE:
-            looked = (self.CONTEXT_SIZE - len(words)) * [' '] + words
+            looked = (self.CONTEXT_SIZE - len(words)) * [''] + words
         else:
             looked = words[-self.CONTEXT_SIZE:]
 

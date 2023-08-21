@@ -32,7 +32,7 @@ def train_model(
 ):
     """Train the model with some text corpus"""
 
-    source = os.path.join(os.path.dirname(__file__), '..', '..', 'data', f'tokens-{corpus_hash}.pickle')
+    source = os.path.join(os.path.dirname(__file__), '..', '..', 'data', f'tokenized-{corpus_hash}.pickle')
     source = os.path.realpath(source)
     vocabulary = save_load.load_emb(source)
 

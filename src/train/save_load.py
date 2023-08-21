@@ -43,7 +43,7 @@ def save_model(model: transformer.Transformer, path: str, overwrite=False):
             pickle.dump(model.embeddings.decode[:-1], f)
         with zipfile.ZipFile(path, 'w') as z:
             z.write(temp_path, 'model.pt')
-            z.write(temp_emb, 'tokens.pickle')
+            z.write(temp_emb, 'vocabulary.pickle')
         os.remove(temp_path)
         os.remove(temp_emb)
     except (IOError, RuntimeError) as e:
@@ -67,7 +67,7 @@ def load_model(path: str, context_size: int) -> transformer.Transformer | None:
             with open(temp_model, 'wb') as tm:
                 tm.write(z.read('model.pt'))
             with open(temp_token, 'wb') as tt:
-                tt.write(z.read('tokens.pickle'))
+                tt.write(z.read('vocabulary.pickle'))
 
         emb = embedding.WordEmbedding(load_emb(temp_token))
         model = transformer.Transformer(context_size, emb)

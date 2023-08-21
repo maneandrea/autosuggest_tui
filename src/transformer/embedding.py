@@ -13,12 +13,15 @@ class WordEmbedding:
 
     def __init__(self, stream: str | list):
         if isinstance(stream, str):
+            # From the first time (text document)
             self.tokens = list(tokenizer.tokenize(stream))
         else:
+            # From an already tokenized file (tokenized-<hash>.pickle)
+            # or from the model zip file (vocabulary.pickle)
             self.tokens = list(stream)
 
         # Note that the empty string is treated as an out-of-vocabulary token
-        self.decode = list(set(self.tokens)) + ['']
+        self.decode = sorted(list(set(self.tokens))) + ['']
         self.vocabulary = {word: i for i, word in enumerate(self.decode)}
         self.num_words = len(self.decode)
         self.end_word_tokens = [
