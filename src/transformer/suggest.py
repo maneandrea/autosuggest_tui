@@ -1,4 +1,5 @@
 import sys
+import bisect
 
 import torch
 
@@ -54,6 +55,7 @@ class Suggester:
         # Generate n_gen words with beam search decoding
         while queue:
 
+            # Safeguard if we don't encounter a word-breaking token in a long time
             depth+=1
             if depth > self.MAX_DEPTH:
                 if len(suggestions) == 0:
@@ -61,24 +63,30 @@ class Suggester:
                 else:
                     break
 
+            # Generate word and probability
             curr_prob, curr_x = queue.pop()
             generated, probs = self.model.generate(curr_x.unsqueeze(0), beam)
 
+            # Push to queue the unfinished words and push to the suggestion list the finished words
             for p, g in sorted(zip(probs, generated), key=sort_by_tensor):
                 # We allow for the very first token to be a space (new word) or not (continuation of word)
                 # if instead a new space is encountered this means the end of a suggestion (end word)
                 if curr_prob == 1 or g not in self.emb.end_word_tokens:
-                    queue.append((
-                        curr_prob * p.item(),
-                        torch.cat((curr_x, g.unsqueeze(0)))
-                    ))
+                    bisect.insort(
+                        queue,
+                        (
+                            curr_prob * p.item(),
+                            torch.cat((curr_x, g.unsqueeze(0)))
+                        )
+                    )
                 else:
                     suggestions.append((
                         curr_prob * p.item(),
                         torch.cat((curr_x, g.unsqueeze(0)))[l_prompt:]
                     ))
 
-            queue = queue[:beam]
+            # Retain only the most probable items (at most beam items)
+            queue = queue[-beam:]
 
         return [(self.make_word(a), p) for p, a in sorted(suggestions, key=sort_by)[:n_gen]]
 
