@@ -1,12 +1,8 @@
 import math
-import re
 import torch
 import torch.nn as nn
 
 from transformer import tokenizer
-
-
-END_WORD_REGEX = r'[\s.,;:!?]+$'
 
 class WordEmbedding:
     """A class for initializing a word embedding vocabulary"""
@@ -24,9 +20,7 @@ class WordEmbedding:
         self.decode = sorted(list(set(self.tokens))) + ['']
         self.vocabulary = {word: i for i, word in enumerate(self.decode)}
         self.num_words = len(self.decode)
-        self.end_word_tokens = [
-            self.vocabulary[w] for w in self.decode if re.match(END_WORD_REGEX, w)
-        ]
+        self.end_word_tokens = tokenizer.end_word(self.vocabulary)
 
     def word_to_idx(self, word: str) -> int:
         """Get the index of a word"""
