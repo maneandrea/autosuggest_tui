@@ -35,12 +35,12 @@ class Suggester:
 
         return w
 
-    def run_model(self, tokens):
+    def run_model(self, tokens, n_suggestions=None):
         """Turn the input words into an integer tensor and run the transformer on it generating
         N_SUGGESTIONS suggestions by decoding tokens until a whitespace is encountered"""
         x = torch.tensor([self.emb.word_to_idx(w) for w in tokens], dtype=torch.int32, device=DEVICE)
         l_prompt = len(tokens)
-        n_gen = self.N_SUGGESTIONS
+        n_gen = self.N_SUGGESTIONS if n_suggestions is None else n_suggestions
         beam = 2 * n_gen
         depth = 0
 
@@ -90,11 +90,11 @@ class Suggester:
 
         return [(self.make_word(a), p) for p, a in sorted(suggestions, key=sort_by)[:n_gen]]
 
-    def suggest(self, words):
+    def suggest(self, words, n_suggestions=None):
         """Takes a vector of words, pads or truncates to CONTEXT_SIZE and returns the suggested words"""
         if len(words) < self.CONTEXT_SIZE:
             looked = (self.CONTEXT_SIZE - len(words)) * [''] + words
         else:
             looked = words[-self.CONTEXT_SIZE:]
 
-        return self.run_model(looked)
+        return self.run_model(looked, n_suggestions)

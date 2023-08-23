@@ -7,17 +7,27 @@ from tui import widgets
 class MainForm(nps.Form):
 
     OK_BUTTON_TEXT = 'Exit'
+    GEN_BUTTON_TEXT = 'Generate'
 
     def __init__(self, suggester=None, **kwargs):
         self.suggester = suggester
         super(MainForm, self).__init__(**kwargs)
 
     def create(self):
-         self.add(
+        text_box_ref = self.add(
             widgets.MultiLineAuto,
             color='LABEL',
             slow_scroll=True,
             suggester=self.suggester
+        )
+        self.add(
+            widgets.GenerateButton,
+            suggester=self.suggester,
+            text_box=text_box_ref,
+            form=self,
+            name=self.GEN_BUTTON_TEXT,
+            use_max_space=True,
+            relx=self.curses_pad.getmaxyx()[1] - len(self.OK_BUTTON_TEXT + self.GEN_BUTTON_TEXT) - 10
         )
 
     def highlight_ok(self):

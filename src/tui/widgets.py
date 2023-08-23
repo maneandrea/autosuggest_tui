@@ -1,6 +1,7 @@
 import curses
 import curses.ascii
 import re
+import threading
 
 import npyscreen as nps
 
@@ -24,23 +25,43 @@ class MultiLineAuto(nps.MultiLineEdit):
             self.color = 'DEFAULT'
             self.value = self.value.replace(self.WELCOME_TEXT, '')
             self.untouched = False
-            self.handlers.update({curses.ascii.TAB: self.auto_complete})
+            self.handlers.update({curses.ascii.TAB: self.tab_complete})
 
     def set_up_handlers(self):
         super(MultiLineAuto, self).set_up_handlers()
 
         self.handlers.update({
-            curses.ascii.TAB: self.auto_complete_first,
+            curses.ascii.TAB: self.tab_complete_first,
             curses.KEY_END: self.goto_end,
             curses.KEY_HOME: self.goto_home
         })
 
-    def auto_complete_first(self, input):
+    def auto_complete(self):
+        """Autocomplete by one word"""
+
+        self.when_value_edited()
+
+        try:
+            text = self.value[:self.cursor_position]
+        except IndexError:
+            text = self.value
+
+        # choice contains a word
+        choice = self.suggester.suggest(
+            list(tokenizer.tokenize(text, self.suggester.CONTEXT_SIZE)),
+            n_suggestions=1
+        )
+        self.editing = True
+        self.add_word(choice[0][0])
+        self.update()
+        self.editing = False
+
+    def tab_complete_first(self, input):
         """Only in case TAB is pressed at the very beginning"""
         self.when_value_edited()
-        self.auto_complete(input)
+        self.tab_complete(input)
 
-    def auto_complete(self, input):
+    def tab_complete(self, input):
         """Applies the autocomplete choice"""
 
         try:
@@ -143,3 +164,61 @@ class DropDown(nps.MultiLine):
             return None
         else:
             return self.value
+
+
+class GenerateButton(nps.Button):
+    """Button used to generate text automatically"""
+
+    def __init__(self,
+                 *args,
+                 form: nps.Form=None,
+                 suggester=None,
+                 text_box: MultiLineAuto=None,
+                 **kwargs):
+        super(GenerateButton, self).__init__(*args, **kwargs)
+        self.suggester = suggester
+        self.text_box = text_box
+        self.form = form
+        self.thread = None
+        self.stop_event = threading.Event()
+
+    def set_up_handlers(self):
+        super(nps.Button, self).set_up_handlers()
+
+        self.handlers.update({
+            curses.ascii.SP: self.h_toggle_update,
+            curses.ascii.NL: self.h_toggle_update,
+            curses.ascii.CR: self.h_toggle_update
+        })
+
+    def h_toggle_update(self, ch):
+        """New method: toggles the button but does not pass focus to next widget, stays put instead"""
+        self.h_toggle(ch)
+        self.editing = False
+        self.form.display()
+
+    def whenToggled(self):
+        if self.value:
+            self.start_gen()
+            self.name = '  Stop  '
+        else:
+            self.stop_event.set()
+            self.name = 'Generate'
+
+    def start_gen(self):
+        """Starts the automatic generation"""
+        self.stop_event.clear()
+        self.thread = threading.Thread(target=self._callback, args=(self.stop_event,))
+        self.thread.start()
+
+    def _callback(self, event):
+        """Auxiliary function that takes into account the stopping condition"""
+        while True:
+            self.callback()
+            self.form.display()
+            if event.is_set() or not self.form.editing:
+                break
+
+    def callback(self):
+        """Function that generates one word of text and gets called continuously"""
+        self.text_box.auto_complete()
