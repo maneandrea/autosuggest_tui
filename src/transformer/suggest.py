@@ -17,9 +17,7 @@ class Suggester:
 
     def __init__(self, model_file: str):
 
-        # self.emb = embedding.WordEmbedding(text)
-        # self.model = transformer.Transformer(self.CONTEXT_SIZE, self.emb).to(DEVICE)
-        self.model = save_load.load_model(model_file, context_size=self.CONTEXT_SIZE)
+        self.model = save_load.load_model(model_file, context_size=self.CONTEXT_SIZE).to(DEVICE)
         if self.model is not None:
             self.emb = self.model.embeddings
             self.model.eval()
@@ -56,7 +54,7 @@ class Suggester:
         while queue:
 
             # Safeguard if we don't encounter a word-breaking token in a long time
-            depth+=1
+            depth += 1
             if depth > self.MAX_DEPTH:
                 if len(suggestions) == 0:
                     return [('', 1)]

@@ -4,6 +4,7 @@ import torch.nn as nn
 
 from transformer import tokenizer
 
+
 class WordEmbedding:
     """A class for initializing a word embedding vocabulary"""
 

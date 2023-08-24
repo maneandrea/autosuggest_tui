@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from transformer import block, embedding
 from params import hyperparams
 
+
 class Transformer(nn.Module):
     """Transformer model"""
 
@@ -55,7 +56,7 @@ class Transformer(nn.Module):
     def generate(self, x: torch.LongTensor | torch.IntTensor, alternatives: int) -> torch.LongTensor | torch.IntTensor:
         """Generates the next token"""
         # Input x is (batch=b, context=t)
-        past = x[:,-self.context_size:]
+        past = x[:, -self.context_size:]
 
         # Prediction is (b, t=self.context_size, n=num_words)
         prediction, _ = self(past)
